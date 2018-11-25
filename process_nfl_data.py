@@ -39,22 +39,23 @@ def load_nflcombine_data():
     
     return combine_stats
     
-def split_test_training_sets(df,one_hot=False):  
-    # Replace missing fields with column averages        
-    df=df.fillna(df.mean())
-    
-    for col in df.columns[1:]:
-        if df[col].dtype == "object":
+def split_test_training_sets(df,one_hot=False):      
+    df1 = df.copy()
+    for col in df1.columns[1:]:
+        if df1[col].dtype == "object":
             if one_hot: 
                 # Convert categorical fields into multiple binary fields   
-                temp_ar = pd.get_dummies(df[col])
-                df[list(temp_ar)] = temp_ar
+                temp_ar = pd.get_dummies(df1[col])
+                df1[list(temp_ar)] = temp_ar
             else:
                 # Drop categorical columns
-                df = df.drop([col],axis=1)   
+                df1 = df1.drop([col],axis=1) 
+        else: 
+            # Replace missing fields with column averages        
+            df1.loc[:,col]=df1.loc[:,col].fillna(df1[col].mean())
         
     # Spit the data into a training set and test set 
-    return train_test_split(df,test_size=0.33,random_state=1)
+    return train_test_split(df1,test_size=0.33,random_state=1)
 
 def summary_stats(df,col):
     # Dispaly summary positions by position   

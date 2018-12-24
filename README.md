@@ -1,1 +1,1 @@
-Using different Supervised Learning methods to classify NFL Player Position
+Using different Supervised Learning methods in Python to classify NFL Player Position

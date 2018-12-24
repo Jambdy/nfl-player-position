@@ -11,6 +11,7 @@ import pandas as pd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sn
 import datetime
 from sklearn.model_selection import cross_validate, train_test_split, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
@@ -37,9 +38,10 @@ def load_nflcombine_data():
     
     combine_stats = combine_stats.rename(index=str, columns={"Wt": "Weight"})
     
+    combine_stats = combine_stats.reset_index(drop=True)
     return combine_stats
     
-def split_test_training_sets(df,one_hot=False):      
+def handle_missing_and_cat_data(df,one_hot=False):      
     df1 = df.copy()
     for col in df1.columns[1:]:
         if df1[col].dtype == "object":
@@ -53,15 +55,20 @@ def split_test_training_sets(df,one_hot=False):
         else: 
             # Replace missing fields with column averages        
             df1.loc[:,col]=df1.loc[:,col].fillna(df1[col].mean())
-        
+    return df1
+
+def split_test_training_sets(df):      
     # Spit the data into a training set and test set 
-    return train_test_split(df1,test_size=0.33,random_state=1)
+    return train_test_split(df,test_size=0.33,random_state=1)
 
 def summary_stats(df,col):
     # Dispaly summary positions by position   
     grouped = df.groupby(col)
-    print(grouped.aggregate(np.mean))
+    df_mean = grouped.aggregate(np.mean)
+    samples = grouped.size()
+    print(df_mean)
     print(grouped.size())
+    return df_mean,samples
 
 def display_histogram(df):
     # Show histograms    
@@ -78,10 +85,12 @@ def display_scatter(df,x,y):
     plt.xlabel(x)
     plt.ylabel(y)
     
+    """
     # Show Cam Newton's stats
     cam = df[df['Player'].str.contains('Cam Newton')]
     if len(cam) != 0:
         plt.scatter(cam[x],cam[y],color='#0083C9',marker='^',s=500)
+    """
 
 def display_scatter_pairs(df,features,player):
     df = df[features]
@@ -179,7 +188,29 @@ def save_confusion_matrix(cm,label,name):
     label = np.insert(label,0,'')
     cm = np.concatenate((np.resize(label,(1,len(label))),cm),axis=0) 
     cm = cm.astype('str')
-    np.savetxt(name+".csv", cm, delimiter=",", fmt="%s")      
+    np.savetxt(name+".csv", cm, delimiter=",", fmt="%s")
+    
+def confusion_matrix_heatmap(cm,labels):
+    df = pd.DataFrame(cm,index=labels,columns=labels)
+    
+    fig, ax = plt.subplots(figsize=(15, 10))
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 20)
+    sn.heatmap(df,annot=True,annot_kws={"size": 14})    
+    plt.savefig("cm_heatmap")
+    
+def prob_pie_chart(df,top=6):
+    # Only show the top percentages
+    df = df.sort_values(['Prob'],ascending=False)
+    other=['Other',sum(df.iloc[top:,1])]
+    df = df.iloc[:top,:]
+    df.loc[len(df)] = other
+    
+    fig, ax = plt.subplots(figsize=(9,9))
+    ax.axis('equal')
+    ax.pie(df['Prob'],labels=df['Pos'],autopct='%1.f%%',
+           textprops={'fontsize': 16})
+    #plt.show()
+    plt.savefig("pie_prob_chart")
     
 def main():     
     return
